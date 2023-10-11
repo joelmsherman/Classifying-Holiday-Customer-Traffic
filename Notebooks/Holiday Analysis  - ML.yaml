@@ -1,0 +1,413 @@
+schemaVersion: 3
+meta:
+  sourceVersionId: 88073a69-da32-4984-82a9-34020676685e # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: Oregon Company's retail locations are open to customers 363 days per year, observing only the Christmas and New Year's Day holidays.  Management seeks to find other candidate holidays for closure while minimizing impacts on customers.  This notebook trains and evaluates a binary classifier for use in profiling upcoming holidays and determining which may be suitable candidates for closure
+  projectId: 60b5079d-cdcc-4710-bf25-951338254a99 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Holiday Analysis  - ML
+  timezone: null
+  appTheme: SYS_PREF
+  codeLanguage: PYTHON
+  status:
+    name: Production
+  categories:
+    - name: Public
+  castDecimalsDefault: true
+  logicQueryCacheTimeout: null
+  publishedQueryCacheTimeout: null
+projectAssets:
+  dataConnections: []
+  envVars: []
+  secrets: []
+sharedAssets:
+  secrets: []
+  vcsPackages: []
+  dataConnections: []
+  externalFileIntegrations: []
+cells:
+  - cellType: MARKDOWN
+    cellId: 079cf813-cc47-401f-83ff-b5eeea5996d7 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Background
+        The data for the analysis is prepared from a variety of sources as detailed in [this notebook](https://app.hex.tech/5b266aaf-b343-4ae7-bdea-218e8fe3001f/app/bc7ccc2f-6461-401a-8fca-933c36943bd7/latest). An interactive exploratory data analysis of the data is available in [this notebook](https://app.hex.tech/5b266aaf-b343-4ae7-bdea-218e8fe3001f/app/d735a3e8-64d4-46bc-a28c-8fac3a2de39e/latest).
+  - cellType: SQL
+    cellId: 93c618cd-2a63-4e1c-adcd-0b72745018c9 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: configure df from source
+    config:
+      source: |-
+        SELECT
+            "Holiday",
+            "Weekday",
+            "Year",
+            "temp",
+            "precip",
+            "precipexp",
+            "Location",
+            "CustType",
+            "Days_HoltoHol",
+            "Days_HoltoWE",
+            "PrevYr_Customers",
+            "LowerTraffic"
+
+            FROM 
+            "THW_final.csv";
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: df
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: CODE
+    cellId: 20b73234-163d-4b43-8900-93b299ad3d11 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: install packages
+    config:
+      source: "! pip install pycaret"
+  - cellType: MARKDOWN
+    cellId: b80e36d4-8dd5-4abc-94ba-1f2f8343685e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Pre-processing
+        Machine learning models like binary classifiers require that certain data pre-processing steps occur prior to training.  This section discusses the major steps taken to pre-process the data. Features with missing values are imputed using the mean (for numeric features) and mode (for categorical features). Categorical features are encoded into numeric features using One-Hot encoding, where each categorical level becomes a separate feature in the dataset containing binary values (1 or 0). To handle imbalances between the minority (higher traffic on holidays) and majority (lower traffic on holidays) classes of the target, SMOTE ([Synthetic Minority Over-sampling Technique](https://arxiv.org/pdf/1106.1813)) is used to balance the target. The data is split into a training and test set using a 70/30 split, resulting in about 560 training cases, and about 240 test cases. 
+  - cellType: CODE
+    cellId: ca5609e7-f5de-422f-bf5e-bcb0b3e13c65 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Experiment setup
+    config:
+      source: |-
+        from pycaret.classification import *
+        clf1 = setup(data = df, 
+                    target = 'LowerTraffic', 
+                    session_id = 123,
+                    fix_imbalance = True
+                )
+  - cellType: MARKDOWN
+    cellId: eb00c97b-2733-410a-9e8e-7cc43ee41804 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Training
+        A set of 16 estimators were trained using 10-fold cross-validation and compared along a variety of performance metrics, including Accuracy, AUC (area under the curve), Recall, Precision, and the F1 score.  Table 1 presents the performance statistics for each trained model, along with training time stats (TT):
+  - cellType: CODE
+    cellId: 23036fda-958f-4d1f-aea5-f8bbde31d607 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: automl training
+    config:
+      source: |-
+        bestmodel = compare_models()
+        bestmodel
+  - cellType: CODE
+    cellId: 78d90f49-79a8-4fd7-8839-d3a742d54fb6 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: "Table 1: Model Comparisons"
+    config:
+      source: |-
+        modelresults = pull()
+        modelresults
+  - cellType: MARKDOWN
+    cellId: 37fce28f-697d-4a6d-8eff-46102a9b6d80 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "The best estimator in terms of Accuracy was a Random Forest Classifier, and was chosen to move forward.This estimator also scored quite high in terms of the other performance metrics, and represents a good model.  Default hyperparameters were used, as follows:  "
+  - cellType: MARKDOWN
+    cellId: ef6a3725-cf2b-4e0a-b2de-21ba24ad5677 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Validation
+        In order to validate the model, the test data, unseen by the training, was used to generate target predictions, which were then compared with actual targets.  Figure 1 shows the Receiver Operating Characteristic (ROC) curves for the model.  The curves for both classes, as well as the micro and macro averages are well above the random classifer line, and the AUC is high at .87, indicating good performance at any discrimination threshold.
+
+        Figure 2 shows the model's confusion matrix.  Both the true positive (tp) and true negative (tn) are quite good, at 85% and 66%, respectively.  In addition, the false negative (fn) rate is low at 15%, which suggests that the model isn't missing many low-traffic instances.  The tradeoff here, of course, is the higher false positive rate of 34%.
+  - cellType: CODE
+    cellId: 6b9ed738-0812-4166-8f3c-d9688cc589ba # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: "Figure 1: AUC"
+    config:
+      source: plot_model(bestmodel, plot = 'auc', scale=1.5)
+  - cellType: CODE
+    cellId: d23e70e1-c9d3-4d94-80b1-5568cee3a0ea # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: "Figure 2: Confusion Matrix"
+    config:
+      source: "plot_model(bestmodel, plot = 'confusion_matrix', plot_kwargs= {'percent' : True}, scale=1.5)"
+  - cellType: CODE
+    cellId: 3699f182-f18f-45d3-b19c-17eb5818cf7e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: shap
+    config:
+      source: interpret_model(bestmodel)
+  - cellType: CODE
+    cellId: 0032e734-f909-40ed-b546-f3483c24de5f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: predictions on holdout set
+    config:
+      source: |-
+        holdoutpreds = predict_model(bestmodel)
+        holdoutpreds
+  - cellType: MARKDOWN
+    cellId: 4928e295-6198-44a3-95f1-d599dee3e4d0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "The model performed differentially by holiday.  Figure 3 shows the average actual and predicted probabilities of lower traffic, by holiday.  The only holiday with perfect discrimination was Thanksgiving Day. Labor Day, President's Day and Veteran's Day were close.  The 4th of July predictions were more than 10 points from actuals, but only due to that holiday's extreme cyclicality with respect to it's day of week float from year to year, which Figure 3 doesn't capture.   "
+  - cellType: CHARTV2
+    cellId: f38934dc-c7a5-4ad5-b0b3-df627742fd8f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: "Figure 3: Predictions by Holiday"
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 20aac24e-2758-4c7f-b70d-e8302b3a4616
+            xAxis:
+              type: string
+              style:
+                grid:
+                  style: dash
+                ticks: {}
+                labels: {}
+              dataFrameColumn: Holiday
+            series:
+              - id: d7a6901d-ad22-4cb5-9012-b9727b64758e
+                name: Actual Probability
+                type: scatter
+                axis:
+                  type: number
+                  style:
+                    max: 1.1
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: P(Lower Traffic)
+                  aggregate: average
+                  numberFormat:
+                    format: PERCENT
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - LowerTraffic
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  fontSize: 12
+                  position: left
+                filled: true
+                shape: circle
+                size: 15
+              - id: 029c391e-a50a-446c-a099-82abb7d274d6
+                name: Predicted Probability
+                type: scatter
+                axis:
+                  type: number
+                  style:
+                    max: 1.1
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: P(Lower Traffic)
+                  aggregate: average
+                  numberFormat:
+                    format: PERCENT
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - prediction_label
+                colorOrder: ascending
+                color:
+                  type: static
+                  color: "#F58518"
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: right
+                filled: true
+                size: 15
+            dataFrame: holdoutpreds
+            seriesGroups:
+              - - d7a6901d-ad22-4cb5-9012-b9727b64758e
+                - 029c391e-a50a-446c-a099-82abb7d274d6
+        settings:
+          legend:
+            position: bottom
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result
+      outputResult: false
+      displayTableConfig: null
+  - cellType: MARKDOWN
+    cellId: 343c1002-6faf-4a10-940e-8ca9f9e8614d # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Finalization
+
+        Due to its good performance, the classifier was trained on the full dataset and the full model pipeline was encapsulated into a model pkl file.  This notebook should be used in about a year's time on a fresh set of actual data to detect and correct for model drift, and to retrain the model should that be necessary.
+  - cellType: CODE
+    cellId: 918c3782-d1c1-4d8e-97b5-e014018aa038 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: train model on entire dataset
+    config:
+      source: finalmodel = finalize_model(bestmodel)
+  - cellType: CODE
+    cellId: c19186cb-67f9-44ce-8798-983ad23a053e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: package model and pipeline into pkl
+    config:
+      source: save_model(finalmodel, 'model_pipeline')
+appLayout:
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - LAST_RUN
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  fullWidth: false
+  tabs:
+    - name: Tab 1
+      rows:
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 079cf813-cc47-401f-83ff-b5eeea5996d7
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: b80e36d4-8dd5-4abc-94ba-1f2f8343685e
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: eb00c97b-2733-410a-9e8e-7cc43ee41804
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 78d90f49-79a8-4fd7-8839-d3a742d54fb6
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 37fce28f-697d-4a6d-8eff-46102a9b6d80
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 23036fda-958f-4d1f-aea5-f8bbde31d607
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: ef6a3725-cf2b-4e0a-b2de-21ba24ad5677
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 6b9ed738-0812-4166-8f3c-d9688cc589ba
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d23e70e1-c9d3-4d94-80b1-5568cee3a0ea
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 4928e295-6198-44a3-95f1-d599dee3e4d0
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: f38934dc-c7a5-4ad5-b0b3-df627742fd8f
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 343c1002-6faf-4a10-940e-8ca9f9e8614d
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+sharedFilters: []

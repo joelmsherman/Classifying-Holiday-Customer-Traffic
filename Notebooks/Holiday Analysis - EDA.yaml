@@ -1,0 +1,1572 @@
+schemaVersion: 3
+meta:
+  sourceVersionId: 2263a380-0d73-4f92-adf8-b9feb6c3cd8c # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: Oregon Company's retail locations are open to customers 363 days per year, observing only the Christmas and New Year's Day holidays.  Management seeks to find other candidate holidays for closure while minimizing impacts on customers.  This notebook provides an exploratory data analysis (EDA) of the data.
+  projectId: d735a3e8-64d4-46bc-a28c-8fac3a2de39e # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Holiday Analysis - EDA
+  timezone: null
+  appTheme: SYS_PREF
+  codeLanguage: PYTHON
+  status:
+    name: Production
+  categories:
+    - name: Public
+  castDecimalsDefault: true
+  logicQueryCacheTimeout: null
+  publishedQueryCacheTimeout: null
+projectAssets:
+  dataConnections: []
+  envVars: []
+  secrets: []
+sharedAssets:
+  secrets: []
+  vcsPackages: []
+  dataConnections: []
+  externalFileIntegrations: []
+cells:
+  - cellType: MARKDOWN
+    cellId: e4aed212-0f69-4ef6-bca2-acf090835064 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Data Source
+        The data for the analysis is prepared from a variety of sources as detailed in [this notebook](https://app.hex.tech/5b266aaf-b343-4ae7-bdea-218e8fe3001f/app/bc7ccc2f-6461-401a-8fca-933c36943bd7/latest).
+  - cellType: CODE
+    cellId: e9ccbbbb-1d34-43ee-bcbc-31122a8f6561 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Read data
+    config:
+      source: |-
+        import pandas as pd
+
+        THW_final = pd.read_csv("THW_final.csv")
+        THW_final.head()
+  - cellType: MARKDOWN
+    cellId: 83904407-6af8-437e-92d4-169825f94834 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Key Questions
+        The analysis will explore the following questions:
+
+        1. Which holidays (other than New Year's and Christmas) exhibit the lowest daily customer traffic, and is this robust across locations and customer types?
+
+        2. How does daily traffic for each holiday above compare with its non-holiday counterpart?
+
+        3. What features of the day contribute to a holiday having relatively lower/higher customer traffic than it's non-holiday counterpart?
+  - cellType: MARKDOWN
+    cellId: 93ac46ac-cd80-468c-a999-29652dac9129 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## 1. Absolute Levels of Holiday Traffic
+
+        Select a one or more locations, customer types and holidays to explore average daily traffic stats, both across and over time.  The narrative sections below will provide a summary analysis.
+  - cellType: INPUT
+    cellId: b103ff48-cd5f-4ba6-8c34-d1fe24b8447a # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Location
+    config:
+      inputType: MULTISELECT
+      name: location
+      outputType: DYNAMIC
+      options:
+        multiValueOptions:
+          dfName: THW_final
+          columnName: Location
+          variableName: THW_final['Location']
+      defaultValue:
+        - __hex_multiselect_select_all_option__
+  - cellType: INPUT
+    cellId: a82ff42c-3f2f-42de-b82d-4297ddc6e094 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Customer type
+    config:
+      inputType: MULTISELECT
+      name: customer_type
+      outputType: DYNAMIC
+      options:
+        multiValueOptions:
+          dfName: THW_final
+          columnName: CustType
+          variableName: THW_final['CustType']
+      defaultValue:
+        - __hex_multiselect_select_all_option__
+  - cellType: INPUT
+    cellId: a0e269ae-0df1-4a98-b218-86a69ec13202 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Holiday
+    config:
+      inputType: MULTISELECT
+      name: holiday
+      outputType: DYNAMIC
+      options:
+        multiValueOptions:
+          dfName: THW_final
+          columnName: Holiday
+          variableName: THW_final['Holiday']
+      defaultValue:
+        - __hex_multiselect_select_all_option__
+  - cellType: SQL
+    cellId: 854e03e7-89e7-4ab5-bcf6-b91483b7b8cf # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Traffic
+    config:
+      source: |-
+        SELECT
+        "Date",
+        "Year",
+        Holiday,
+        AVG("temp") AS "AvgDailyTemp",
+        AVG("precip") AS "AvgDailyPrecip",
+        FIRST("precipexp") AS "Precip Expected",
+        FIRST("Days_HoltoHol") AS "DaysBetwHols",
+        FIRST("Days_HoltoWE") AS "DaystoWE",
+        SUM("PrevYr_Customers") AS "AvgPrevYrTraffic",
+        SUM(HolCustomers) AS "Holiday traffic",
+        SUM(NonholCustomers) AS "Non-holiday traffic",
+        CASE 
+            WHEN SUM(HolCustomers) < SUM(NonholCustomers) THEN 1
+            ELSE 0
+        END AS "p(LowerTraffic)",
+        CASE 
+            WHEN SUM(HolCustomers) < SUM(NonholCustomers) THEN 'lower traffic'
+            ELSE 'higher traffic'
+        END AS "LowerTrafficCat"
+
+            FROM
+            THW_final
+
+            WHERE
+            Location IN ({{location | array}})
+            AND CustType IN ({{customer_type | array}})
+            AND Holiday IN ({{holiday | array}})
+
+            GROUP BY
+            "Date",
+            "Year",
+            Holiday
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: traffic
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: MARKDOWN
+    cellId: a227face-2872-429f-af54-d848f38d0d9e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ### Across Time
+
+        Overall, Thanksgiving has the lowest level of traffic, with an average of 236 daily customers.  This is followed by 4th of July (865), and Black Friday (904) to yield the lowest three holidays.  Juneteenth, which has only been a federal holiday since 2001, has the highest average daily traffic, at over 1,500 customers. These rank orders are identical for Location 2, and only minimally different for Location 1.  For the latter, MLK Jr Day sees slightly fewer customers than Black Friday, and Memorial Day sees slightly fewer than Labor Day.  But overall, they are similar. More significant differences in rank arise with respect to the customer type.  For Type 1, the lowest three holidays are Thanksgiving Day (233), Labor Day (265) and Memorial Day (268).  For Type 2, the lowest three are Thanksgiving Day (3), 4th of July (595) and MLK Jr Day (608). 
+  - cellType: MARKDOWN
+    cellId: 44f7b86f-1df2-4ccd-8196-392b41468ed4 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 1 Title
+    config:
+      source: "**Figure 1:** Average holiday traffic for {{location}} and {{customer_type}}"
+  - cellType: CHARTV2
+    cellId: 24dbdf66-c092-43fd-aa5c-12e3aa2cac99 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 1
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 2370f498-e92a-432f-8db3-5b634379c0ca
+            xAxis:
+              sort: x
+              type: string
+              style:
+                ticks: {}
+                labels: {}
+              title: " Holiday"
+              dataFrameColumn: Holiday
+            series:
+              - id: b4eea28c-9616-4568-b07a-ee7b41cd9ebd
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 10
+                    labels: {}
+                  title: Avg. daily traffic
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Holiday traffic
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                barWidth: 1
+                orientation: horizontal
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings:
+        Metro South: "#F58518"
+        Metro Central: "#4C78A8"
+      resultVariable: filter_result
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties:
+          - originalName: Holiday
+            renameTo: null
+            size: 125
+            wrapText: null
+            displayFormat: null
+          - originalName: Traffic
+            renameTo: null
+            size: 157
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: f3831bd3-7d2f-48d6-88a4-990dd40a71f8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ### Over Time
+
+        Thanksgiving Day has consistently been **the lowest** traffic holiday over the last 26 years, at either Location, and for Type 2 customers. It is **among the lowest** traffic holidays for Type 1 customers as well.  The 4th of July (and other floating holidays like it) sees much less consistently lower traffic, and has marked peaks and troughs by year for Type 2 customers, in particular.
+  - cellType: MARKDOWN
+    cellId: 9ab73a2f-86f0-4969-95d9-98ba650187af # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 2 title
+    config:
+      source: "**Figure 2:** Holiday traffic over time for {{location}} and {{customer_type}}"
+  - cellType: CHARTV2
+    cellId: a85b6deb-3f3b-495b-abb1-2be42f03f0c0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 2
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 15ce94c2-9e7c-476f-8586-52e5970b6bd7
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels: {}
+              dataFrameColumn: Year
+            series:
+              - id: e97b4e02-a92c-49d5-9160-e2ffbc6ebb4b
+                type: line
+                axis:
+                  type: number
+                  style:
+                    grid:
+                      style: solid
+                    ticks: {}
+                    labels: {}
+                  title: Traffic
+                  aggregate: average
+                dataFrameColumns:
+                  - Holiday traffic
+                colorDataFrameColumn: Holiday
+                colorOrder: ascending
+                color:
+                  type: series
+                  colorsBySeriesValues: {}
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                point: false
+                interpolate: linear
+                stroke: solid
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings:
+        Labor Day: "#15153C"
+        Juneteenth: "#DADADA"
+        MLK Jr Day: "#929294"
+        4th of July: "#E7446F"
+        Black Friday: "#1B1718"
+        Memorial Day: "#2E2D2E"
+        Veterans Day: "#1B1718"
+        Presidents Day: "#FFFFFF"
+        Thanksgiving Day: "#E7446F"
+      resultVariable: traffic_overtime
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: ae7995c8-a9d5-42b1-b320-367c0981310c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## 2. Holiday Traffic Relative to Non-holiday Traffic
+
+        Your location, customer types and holiday selections above will apply to Figures 3 and 4 below. The narrative sections below will provide a summary analysis.
+  - cellType: MARKDOWN
+    cellId: d3759a33-b430-44ac-a9b0-e989d3f1a553 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ### Across Time
+
+        Across locations and customer types, Thanksgiving Day and the 4th of July have the largest differences between holiday and non-holiday traffic, at 437 and 345 fewer average daily customers, respectively. Labor Day and Memorial Day also see few holiday customers than non-holiday customers, but the differences are less.  President's Day is the only holiday that has significantly higher holiday traffic than non-holiday traffic, at 82 more average daily customers.  These differences are robust for either location and customer type, however, the magnitude of the differences for Type 1 customer traffic is more muted.
+  - cellType: MARKDOWN
+    cellId: 337a5cb9-daf9-4f2a-b111-98a063bf30b8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 3 title
+    config:
+      source: "**Figure 3:** Comparison of holiday and non-holiday traffic for {{location}} and {{customer_type}}"
+  - cellType: CHARTV2
+    cellId: b8d6cd74-4445-4c18-8dd7-b72f4dfa0e76 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 3
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: b5010b3c-f217-46e5-bc3d-3a876b3b07d5
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels: {}
+              dataFrameColumn: Holiday
+            series:
+              - id: 4569aa8f-3a68-4140-89e3-47ab63d405fd
+                name: Non-holiday traffic
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks: {}
+                    labels: {}
+                  title: Average daily traffic
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Non-holiday traffic
+                colorOrder: ascending
+                color:
+                  type: static
+                  color: "#F58518"
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                barWidth: 1
+                orientation: vertical
+                layout: stacked
+              - id: e92be299-f618-4d6c-9724-51372a33a34f
+                name: Holiday traffic
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks: {}
+                    labels: {}
+                  title: Average daily traffic
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Holiday traffic
+                colorOrder: ascending
+                color:
+                  type: static
+                  color: "#4C78A8"
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                barWidth: 1
+                orientation: vertical
+                layout: stacked
+            dataFrame: traffic
+            seriesGroups:
+              - - 4569aa8f-3a68-4140-89e3-47ab63d405fd
+                - e92be299-f618-4d6c-9724-51372a33a34f
+        settings:
+          legend:
+            position: bottom
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings:
+        Metro South: "#F58518"
+        Metro Central: "#4C78A8"
+      resultVariable: filter_result_5
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties:
+          - originalName: CustType
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: Date
+            renameTo: null
+            size: 99
+            wrapText: null
+            displayFormat: null
+          - originalName: Days_HoltoHol
+            renameTo: null
+            size: 135
+            wrapText: null
+            displayFormat: null
+          - originalName: HolCustomers
+            renameTo: null
+            size: 132
+            wrapText: null
+            displayFormat: null
+          - originalName: Holiday
+            renameTo: null
+            size: 125
+            wrapText: null
+            displayFormat: null
+          - originalName: NonholCustomers
+            renameTo: null
+            size: 152
+            wrapText: null
+            displayFormat: null
+          - originalName: Station
+            renameTo: null
+            size: 98
+            wrapText: null
+            displayFormat: null
+          - originalName: Weekday
+            renameTo: null
+            size: 104
+            wrapText: null
+            displayFormat: null
+          - originalName: Year
+            renameTo: null
+            size: 79
+            wrapText: null
+            displayFormat: null
+          - originalName: precip
+            renameTo: null
+            size: 89
+            wrapText: null
+            displayFormat: null
+          - originalName: precipexp
+            renameTo: null
+            size: 108
+            wrapText: null
+            displayFormat: null
+          - originalName: temp
+            renameTo: null
+            size: 83
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: 64867219-ca73-486a-9431-c034a8eac548 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ### Over Time
+
+        For any holiday, location and customer type, holiday traffic, on average, is steadily lower than it's non-holiday counterpart each year.  This is clearly evident for Thanksgiving Day, as well as Memorial Day and Labor Day.  But not so for the 4th of July. Due to the fact that it floats, there are years (about every 5 or 6) when traffic is much higher on the day, than for any equivalent non-holiday days around it.  We'll see why in the next section.
+  - cellType: MARKDOWN
+    cellId: 9e743fe3-e2dd-4739-b492-cb9ef1971d88 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 4 title
+    config:
+      source: "**Figure 4:** {{holiday}} holiday v non-holiday traffic over time for {{location}} and {{customer_type}}"
+  - cellType: CHARTV2
+    cellId: f5492c1b-27f6-4017-9b21-40a5d9abd516 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Figure 4
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 15ce94c2-9e7c-476f-8586-52e5970b6bd7
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels: {}
+              dataFrameColumn: Year
+            series:
+              - id: b230e0f0-d84b-41be-9e1b-6499995b7da5
+                name: Non-holiday traffic
+                type: area
+                axis:
+                  type: number
+                  style:
+                    grid:
+                      style: solid
+                    ticks: {}
+                    labels: {}
+                  title: Traffic
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Non-holiday traffic
+                colorOrder: ascending
+                color:
+                  type: static
+                  color: "#F58518"
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                line: true
+                point: false
+                normalize: false
+              - id: e97b4e02-a92c-49d5-9160-e2ffbc6ebb4b
+                name: Holiday traffic
+                type: area
+                axis:
+                  type: number
+                  style:
+                    grid:
+                      style: solid
+                    ticks: {}
+                    labels: {}
+                  title: Traffic
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Holiday traffic
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                line: true
+                point: false
+                interpolate: linear
+                normalize: false
+            dataFrame: traffic
+            seriesGroups:
+              - - b230e0f0-d84b-41be-9e1b-6499995b7da5
+                - e97b4e02-a92c-49d5-9160-e2ffbc6ebb4b
+        settings:
+          legend:
+            position: bottom
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: traffic_overtime_2
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: 5b383818-164f-43f2-859e-37ef00cc0a29 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## 3. Factors Affecting Lower Traffic
+
+        The following section explores the factors that affect whether a holiday experiences relatively lower traffic than a non-holiday, similarly-situated day. Factors include:
+
+        * Average temperature (F)
+        * Average precipitation (inches)
+        * Probability of precipitation (%)
+        * Number of days between holidays
+        * Number of days between the holiday and the weekend
+        * Traffic on the same holiday for the previous year
+
+        Your location, customer types and holiday selections above will apply to Figure 5 below. The narrative section below will provide a summary analysis.
+  - cellType: MARKDOWN
+    cellId: da6ef876-2879-4dd6-9b4a-51ea165939c4 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "**Figure 5:** Statistics for {{holiday}} across days with higher and lower traffic for the holiday, at {{location}} and for {{customer_type}}"
+  - cellType: CHARTV2
+    cellId: ca3d2189-f1a1-480c-9f74-40370a257153 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Avg. daily temperature (f)
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Avg. Daily Temperature (f)
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - AvgDailyTemp
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_6
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: CHARTV2
+    cellId: 0ba387f8-566c-4d02-8e6d-5bd44f33fbfe # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Avg. daily precipitation (in)
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Avg. Daily Precip. (in)
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 2
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - AvgDailyPrecip
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_11
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: CHARTV2
+    cellId: 2d28771b-43ed-4141-a6e1-cf083b33e6c1 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Probability of preciptation (%)
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Precip Expected (%)
+                  aggregate: average
+                  numberFormat:
+                    format: PERCENT
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - Precip Expected
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_12
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: CHARTV2
+    cellId: 9763fade-5a4b-48c4-8278-4ae4501e2636 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Days between holidays
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Avg. days between holidays
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - DaysBetwHols
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_13
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: CHARTV2
+    cellId: 2b6e41a3-e51c-4050-a61c-e5f73dcad818 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Proximity to weekends
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Avg. days to a weekend day
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 2
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - DaystoWE
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_14
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: CHARTV2
+    cellId: c8adbbb0-8d99-4218-9e45-13b6bdbf7d21 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Same holiday traffic last year
+    config:
+      height: null
+      chartSpec:
+        type: layered
+        layers:
+          - id: 6ac15af6-a0b8-49d7-a79f-75aad4da84ec
+            xAxis:
+              type: string
+              style:
+                ticks: {}
+                labels:
+                  angle: 0
+              title: Holidays with...
+              dataFrameColumn: LowerTrafficCat
+            series:
+              - id: 32fa2bb3-347e-4619-bf6b-217f1165df1f
+                type: bar
+                axis:
+                  type: number
+                  style:
+                    ticks:
+                      count: 0
+                    labels: {}
+                  title: Avg. daily traffic on same holiday last year
+                  aggregate: average
+                  numberFormat:
+                    format: NUMBER
+                    currency: USD
+                    columnType: NUMBER
+                    numDecimalDigits: 0
+                    abbreviateLargeNumbers: false
+                dataFrameColumns:
+                  - AvgPrevYrTraffic
+                colorOrder: ascending
+                color:
+                  type: static
+                opacity:
+                  type: static
+                  value: 1
+                tooltip:
+                  type: auto
+                dataLabels:
+                  position: inside-end
+                barWidth: 1
+                orientation: vertical
+                layout: grouped
+            dataFrame: traffic
+        settings:
+          legend:
+            position: right
+          tooltip: true
+          selectionEnabled: false
+      chartSelection: {}
+      colorMappings: {}
+      resultVariable: filter_result_15
+      outputResult: false
+      displayTableConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: []
+        columnProperties: []
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: a4c118c7-8992-4901-b2b5-969b334c6177 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "### Comparison of means"
+  - cellType: CODE
+    cellId: ca672479-57c9-4d68-b890-ddc94bf6e148 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: compare means
+    config:
+      source: |-
+        import scipy.stats as stats
+
+        # List of factors to compare high and low traffic days
+        compare_cols = [
+            'AvgDailyTemp',
+            'AvgDailyPrecip',
+            'Precip Expected',
+            'DaysBetwHols',
+            'DaystoWE',
+            'AvgPrevYrTraffic',
+        ]
+
+        # Initialize lists to store results
+        factors = []
+        t_statistics = []
+        p_values = []
+
+        # Loop through each column and perform t-test
+        for col in compare_cols:
+            t_stat, p_val = stats.ttest_ind(traffic[col], traffic['p(LowerTraffic)'])
+            factors.append(col)
+            t_statistics.append(t_stat)
+            p_values.append(p_val)
+
+        # Create dataframe from results
+        ttest_results = pd.DataFrame({
+            'Factor': factors,
+            't-statistic': t_statistics,
+            'p-value': p_values
+        })
+  - cellType: SQL
+    cellId: 3d9cbd5e-3e23-456f-a52f-cb31b365536e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Comparison of means for each factor
+    config:
+      source: |-
+        SELECT
+            CASE 
+                WHEN "Factor" = 'AvgDailyTemp' THEN 'Average daily temperature'
+                WHEN "Factor" = 'AvgDailyPrecip' THEN 'Average daily precipitation'
+                WHEN "Factor" = 'Precip Expected' THEN 'Probability of precipitation'
+                WHEN "Factor" = 'DaysBetwHols' THEN 'Days between holidays'
+                WHEN "Factor" = 'DaystoWE' THEN 'Proximity to weekends'
+                WHEN "Factor" = 'AvgPrevYrTraffic' THEN 'Same holiday traffic last year'
+            END AS Factor,
+            "t-statistic",
+            "p-value"
+
+            FROM ttest_results
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: df_comparemeans
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: MARKDOWN
+    cellId: 5cc108d8-49ba-473b-9b19-ad29e1780b6f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |+
+        ### Temperature
+
+        Overall, holiday traffic is lower than similarly-situated non-holidays when average temperatures are warmer.  This is true for either location, as it is for either customer type.  Difference do exist, however, by holiday.  
+
+        ### Precipitation
+
+        Lower traffic holidays also coincide with higher preciptation, on average.  Across all holidays, locations and customer types, holidays that exhibited lower traffic than non-holiday counterparts had almost twice the amount of rain.  This finding is robust for each location, but not for customer type.  For Type 1 customers specifically, traffic is lower when precipitation is lower. 
+
+        ### Precipitation Probability
+
+        The expectation of precipitation in the forecast doesn't appear to impact traffic differences in the majority of cases.  The exception is with Type 1 customer types, which see lower traffic holidays when the precip forecast is lower.  
+
+        ### Calendar Attributes of Holiday
+
+        Lower traffic was also more prevalent among holidays with relatively longer time spans between holidays.  Further, holidays that occur further from a weekend (such as those floating holidays that end up on a Wednesday in a given year, for example) tend to have more lower traffic days.
+
+        ### Same Holiday Last Year
+
+        Finally, lower traffic holidays coincided with lower traffic on the same holiday the previous year, suggesting some consistent time element.  
+
+  - cellType: MARKDOWN
+    cellId: d9d96db9-a331-48dd-a9f2-dda6840adaed # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## Conclusion & Next Steps
+
+        Based on this EDA, it appears that Thanksgiving and 4th of July stand out as candidate holidays if additional holiday observances are to be made.  However, it's important to note that not all 4th of July's are created equal, and depend on the day of the week in which the holiday would fall in the upcoming calendar.  
+
+        For this reason, it would be useful to develop a machine learning classifier that can profile upcoming holidays (for the next year, the next quarter, whatever is needed operationally) and determine the liklihood of lower traffic.  
+
+        A forthcoming notebook will do just that.
+appLayout:
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - LAST_RUN
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  fullWidth: true
+  tabs:
+    - name: Tab 1
+      rows:
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: e4aed212-0f69-4ef6-bca2-acf090835064
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 83904407-6af8-437e-92d4-169825f94834
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 93ac46ac-cd80-468c-a999-29652dac9129
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 40
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: b103ff48-cd5f-4ba6-8c34-d1fe24b8447a
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 40
+              end: 80
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a82ff42c-3f2f-42de-b82d-4297ddc6e094
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 80
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a0e269ae-0df1-4a98-b218-86a69ec13202
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a227face-2872-429f-af54-d848f38d0d9e
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 44f7b86f-1df2-4ccd-8196-392b41468ed4
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 24dbdf66-c092-43fd-aa5c-12e3aa2cac99
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: f3831bd3-7d2f-48d6-88a4-990dd40a71f8
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 9ab73a2f-86f0-4969-95d9-98ba650187af
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a85b6deb-3f3b-495b-abb1-2be42f03f0c0
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: ae7995c8-a9d5-42b1-b320-367c0981310c
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d3759a33-b430-44ac-a9b0-e989d3f1a553
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 337a5cb9-daf9-4f2a-b111-98a063bf30b8
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: b8d6cd74-4445-4c18-8dd7-b72f4dfa0e76
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 64867219-ca73-486a-9431-c034a8eac548
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 9e743fe3-e2dd-4739-b492-cb9ef1971d88
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: f5492c1b-27f6-4017-9b21-40a5d9abd516
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 5b383818-164f-43f2-859e-37ef00cc0a29
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: da6ef876-2879-4dd6-9b4a-51ea165939c4
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: ca3d2189-f1a1-480c-9f74-40370a257153
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 0ba387f8-566c-4d02-8e6d-5bd44f33fbfe
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 2d28771b-43ed-4141-a6e1-cf083b33e6c1
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 9763fade-5a4b-48c4-8278-4ae4501e2636
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 2b6e41a3-e51c-4050-a61c-e5f73dcad818
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: c8adbbb0-8d99-4218-9e45-13b6bdbf7d21
+                  sharedFilterId: null
+                  height: 350
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a4c118c7-8992-4901-b2b5-969b334c6177
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: ca672479-57c9-4d68-b890-ddc94bf6e148
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 3d9cbd5e-3e23-456f-a52f-cb31b365536e
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 5cc108d8-49ba-473b-9b19-ad29e1780b6f
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d9d96db9-a331-48dd-a9f2-dda6840adaed
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+sharedFilters: []

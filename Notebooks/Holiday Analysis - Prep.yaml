@@ -1,0 +1,1209 @@
+schemaVersion: 3
+meta:
+  sourceVersionId: a3d403da-1382-4e3a-9c0d-31dce5680ef5 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: Oregon Company's retail locations are open to customers 363 days per year, observing only the Christmas and New Year's Day holidays.  Management seeks to find other candidate holidays for closure while minimizing impacts on customers.  This notebook details the data preparation associated with this analysis.
+  projectId: bc7ccc2f-6461-401a-8fca-933c36943bd7 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Holiday Analysis - Prep
+  timezone: null
+  appTheme: SYS_PREF
+  codeLanguage: PYTHON
+  status:
+    name: Production
+  categories:
+    - name: Public
+  castDecimalsDefault: true
+  logicQueryCacheTimeout: null
+  publishedQueryCacheTimeout: null
+projectAssets:
+  dataConnections: []
+  envVars: []
+  secrets: []
+sharedAssets:
+  secrets: []
+  vcsPackages: []
+  dataConnections: []
+  externalFileIntegrations: []
+cells:
+  - cellType: MARKDOWN
+    cellId: 45b714fb-5ddd-41d6-ae01-1f49318cb9fd # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Data Sources and Prep
+        The analysis relies on three distinct sources of data, each of which were prepped per the specifications below.
+
+        ## Holidays
+        Data on holidays is from [Kaggle](https://www.kaggle.com/datasets/donnetew/us-holiday-dates-2004-2021?resource=downloadhttps://www.kaggle.com/datasets/donnetew/us-holiday-dates-2004-2021?resource=download) under Public Domain (CC0) license, and was supplemented with an additional holiday (black friday) and additional years worth of data, to encompass the years 2000 through 2023. Holidays for consideration in the analysis include all [publicly observed holidays in Oregon](https://www.oregon.gov/puc/news-events/pages/observed-holidays.aspx), which includes:
+
+        * Martin Luther King Jr. Day - third Monday of January
+        * President's Day - third Monday of February
+        * Memorial Day - last Monday of May
+        * Juneteenth - June 19
+        * 4th of July - July 4
+        * Labor Day - first Monday of September
+        * Veteran's Day - November 11
+        * Thanksgiving - fourth Thursday of November
+        * Black Friday - day after Thanksgiving
+  - cellType: CODE
+    cellId: c605596d-17a7-4a64-b31f-0ce136bf91da # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Holiday Counts
+    config:
+      source: |-
+        import pandas as pd
+
+        # Read in data
+        holidays = pd.read_csv("US Holidays.csv", parse_dates=["Date"])
+
+        # Exclude new years and xmas because those are already Metro holidays
+        holidays = holidays[~holidays["Holiday"].isin(["New Years Day", "Christmas Day"])]
+
+        # Count each holiday
+        holiday_counts = holidays.groupby(["Holiday"]).size().reset_index(name="Count")
+
+        print(holiday_counts)
+  - cellType: CODE
+    cellId: 5a945ce4-e011-4f24-a0de-266ff2ba376b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Holiday type counts
+    config:
+      source: |-
+        holtype_counts = holidays.groupby(["Type"]).size().reset_index(name="Count")
+        print(holtype_counts)
+  - cellType: MARKDOWN
+    cellId: d97d3be4-1679-4d33-aaa4-12aeaac06bfa # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        There were 26 instances of each of the 9 holidays in the dataset, with the exception of Juneteenth, for which there were 3 (it was declared a national holiday only in 2021).  Of the 211 instances, 156 were fixed holidays, 55 were floating holidays.  Fixed holidays are those that occur on the same day of the week each year (MLK Jr, President's, Memorial, etc.), and never occur on a weekend day. Floating holidays change the day of the week on which they occur from year to year (4th of July, Veteran's, etc.), and can occur on Saturdays or Sundays in some years.  In those cases, the federal [Office of Personnel Management](https://www.opm.gov/policy-data-oversight/pay-leave/work-schedules/fact-sheets/Federal-Holidays-In-Lieu-Of-Determination#:~:text=A1.,on%20which%20the%20holiday%20fell.) provides guidance on "In Lieu Of" (ILO) holidays that states: 
+
+        * If a holiday falls on a Saturday, the Friday immediately before is the legal holiday. 
+        * If a holiday falls on a Sunday, the following Monday is the legal holiday.
+  - cellType: SQL
+    cellId: b176b847-9469-4f32-ad7c-915facccaaa4 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Holidays cleaned
+    config:
+      source: |-
+        SELECT
+            CASE 
+                WHEN "Weekday" = 'Saturday' THEN "Date" - INTERVAL 1 DAY
+                WHEN "Weekday" = 'Sunday' THEN "Date" + INTERVAL 1 DAY
+                ELSE "Date"
+            END AS "Date",
+            Holiday
+
+        FROM holidays
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: holidays_cleaned
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: Date_ILO
+            renameTo: null
+            size: 156
+            wrapText: null
+            displayFormat: null
+          - originalName: Holiday
+            renameTo: null
+            size: 96
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: 43cc89a9-1d2c-4d57-a08f-fb4ab5d0e556 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "In order to analyze Saturday or Sunday floating holiday traffic then, the date on which the holiday occured is shifted to the Friday or Monday to account for the **day of the week in which the majority of customers would've had the day off** and therefore would've been able to exploit the holiday to do business with Oregon Company.  "
+  - cellType: MARKDOWN
+    cellId: 248d7c50-50bc-460f-b021-5ff471f3aee4 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## Weather
+        Weather data is from [Visual Crossing](https://www.visualcrossing.com/) and includes historical temperature and precipitation data from weather stations around Oregon Company's retail locations, Location 1 and Location 2.  Data is [aggregated and summarized by day](https://www.visualcrossing.com/resources/documentation/weather-data/how-we-process-integrated-surface-database-historical-weather-data/), and available separately for each location.  Available weather features include temperature (degrees F), precipitation (inches), and precipitation type (the type of precipitation **expected for the day**).
+  - cellType: SQL
+    cellId: f1600558-781e-434e-9dae-63b0d4c129eb # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Weather combined
+    config:
+      source: |-
+        SELECT * FROM "Location1_weather.csv" 
+        UNION
+        SELECT * FROM "Location2_weather.csv";
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: weather_combined
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: days
+            renameTo: null
+            size: 80
+            wrapText: null
+            displayFormat: null
+          - originalName: precipprob
+            renameTo: null
+            size: 114
+            wrapText: null
+            displayFormat: null
+          - originalName: preciptype
+            renameTo: null
+            size: 169
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: SQL
+    cellId: 097d09f3-e66c-43ee-b856-443ba957cc3b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Weather preciptypes
+    config:
+      source: |-
+        SELECT 
+            preciptype,
+            COUNT(datetime) AS Counts
+            
+            FROM 
+            weather_combined 
+            
+            GROUP BY 
+            preciptype
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: weather_preciptypes
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: MARKDOWN
+    cellId: 81a11f6f-d70e-40a4-8b2c-476eaad28067 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "Over the weather data duration, 9 different precipitation types were expected, ranging from rain, to freezing rain, to snow, as well as all mixes of those.  Null values (Nan) for precipitation type indicate that no precipitation was expected for the day.  For this analysis, precipitation type is transformed into a binary feature (yes/no) indicating whether or not **any** precipitation was expected for the day.  This, in addition to actual precipitation and temperature, form the primary weather features in this analysis.  It's important to note that Visual Crossing has many [more features available](https://www.visualcrossing.com/resources/documentation/weather-data/weather-data-documentation/) in its database. "
+  - cellType: BLOCK
+    cellId: 966c7c0c-e1bb-43f3-a234-f5243c6357fa # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      blockConfig:
+        sqlCellId: bef4d451-ea01-4418-aeff-c0df76325064
+        chartCellId: cb04c941-bdc1-42af-8bc4-ba328a5048de
+        activeTab: preview
+      cells:
+        - cellType: SQL
+          cellId: bef4d451-ea01-4418-aeff-c0df76325064
+          cellLabel: Weather cleaned
+          config:
+            source: |
+              SELECT
+                  datetime,
+                  CASE
+                      WHEN LEFT(name, 4) = '2001' THEN 'Location 1'
+                      ELSE 'Location 2'
+                  END AS location,
+                  temp,
+                  precip,
+
+                  CASE
+                      WHEN preciptype IS NULL THEN 0
+                      ELSE 1
+                  END AS precipexp
+
+              FROM
+                  weather_combined
+            dataFrameCell: true
+            dataConnectionId: null
+            resultVariableName: weather_cleaned
+            useRichDisplay: false
+            sqlCellOutputType: PANDAS
+            useQueryMode: false
+            castDecimals: true
+            useNativeDates: true
+            outputFilteredResult: true
+            allowDuplicateColumns: false
+            tableDisplayConfig:
+              pageSize: 50
+              height: null
+              hideIcons: false
+              hideIndex: false
+              defaultSortColumn: null
+              defaultSortIndexColumn: null
+              defaultSortDirection: ASC
+              conditionalFormatting: null
+              filters: null
+              columnProperties:
+                - originalName: datetime
+                  renameTo: null
+                  size: 103
+                  wrapText: null
+                  displayFormat: null
+                - originalName: precip
+                  renameTo: null
+                  size: 89
+                  wrapText: null
+                  displayFormat: null
+                - originalName: precipexp
+                  renameTo: null
+                  size: 108
+                  wrapText: null
+                  displayFormat: null
+                - originalName: station
+                  renameTo: null
+                  size: 98
+                  wrapText: null
+                  displayFormat: null
+                - originalName: temp
+                  renameTo: null
+                  size: 83
+                  wrapText: null
+                  displayFormat: null
+              columnOrdering: null
+              pinnedColumns: null
+              hiddenColumns: null
+        - cellType: CHARTV2
+          cellId: cb04c941-bdc1-42af-8bc4-ba328a5048de
+          cellLabel: Weather cleaned
+          config:
+            height: null
+            chartSpec:
+              type: layered
+              layers:
+                - id: 6dc6beee-8147-4938-8e62-095a20843210
+                  xAxis:
+                    type: number
+                    style:
+                      grid:
+                        style: solid
+                      ticks: {}
+                      labels: {}
+                    dataFrameColumn: temp
+                  series:
+                    - id: 3ecdbb35-2bfd-42f3-bb47-dd25e3478e13
+                      type: bar
+                      axis:
+                        type: datetime
+                        style:
+                          grid:
+                            style: solid
+                          ticks: {}
+                          labels: {}
+                        aggregate: count
+                      dataFrameColumns:
+                        - datetime
+                      colorOrder: ascending
+                      color:
+                        type: static
+                      opacity:
+                        type: static
+                        value: 1
+                      tooltip:
+                        type: auto
+                      barWidth: 1
+                      orientation: horizontal
+                      layout: grouped
+                  dataFrame: weather_cleaned
+              settings:
+                legend:
+                  position: right
+                tooltip: true
+                selectionEnabled: false
+            chartSelection: {}
+            colorMappings: {}
+            resultVariable: filter_result
+            outputResult: false
+            displayTableConfig: null
+  - cellType: MARKDOWN
+    cellId: b65774db-1219-44ea-9ef4-8143b8f76e09 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## Traffic
+        Customer traffic data is from Oregon Company's point-of-sale system, and includes the total number of customers served by date, location and customer type (Type 1 vs Type 2).
+  - cellType: SQL
+    cellId: 6b01474f-4ccd-4256-a0a3-35cd7fb713ce # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Traffic raw
+    config:
+      source: select * from "DailyTraffic.csv";
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: traffic_raw
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: MARKDOWN
+    cellId: 52dbea37-1105-416f-b03f-a1f811c8368a # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: "Traffic data was combined with holiday data to indicate which traffic days were also holidays, and which were not.  For non-holiday traffic days, the average daily traffic was computed for each weekday, month, year, location and customer type. This allows for valid comparisons between holiday and non-holiday traffic because it controls for the trading day, season, cycle, location and type of customer.  "
+  - cellType: SQL
+    cellId: 3abc9eab-6680-4778-b1ec-c20dc0ad5c6d # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Avgtraffic nonholiday
+    config:
+      source: |-
+        SELECT
+            DAYOFWEEK(t.Date) AS DayOfWeek,
+            MONTH(t.Date) AS Mnth,
+            YEAR(t.Date) AS Yr,
+            t.Location,
+            t.CustType,
+            AVG(t.Customers) AS AvgDailyCustomers
+
+
+            FROM
+            traffic_raw t
+            LEFT JOIN holidays_cleaned h
+                ON t.Date = h.Date
+
+            WHERE
+            h.Holiday IS NULL
+
+            GROUP BY
+            DAYOFWEEK(t.Date),
+            MONTH(t.Date),
+            YEAR(t.Date),
+            t.Location,
+            t.CustType
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: avgtraffic_nonholiday
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: AvgDailyCustomers
+            renameTo: null
+            size: 159
+            wrapText: null
+            displayFormat: null
+          - originalName: CustType
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: Date
+            renameTo: null
+            size: 156
+            wrapText: null
+            displayFormat: null
+          - originalName: DayOfWeek
+            renameTo: null
+            size: 118
+            wrapText: null
+            displayFormat: null
+          - originalName: Mnth
+            renameTo: null
+            size: 82
+            wrapText: null
+            displayFormat: null
+          - originalName: N
+            renameTo: null
+            size: 63
+            wrapText: null
+            displayFormat: null
+          - originalName: Station
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: Yr
+            renameTo: null
+            size: 66
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: c5f4dcce-77d1-47da-8889-65aae5d73fd0 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: Average daily traffic statistics for non-holiday traffic days were combined with those from holidays, and that was combined with weather data.
+  - cellType: SQL
+    cellId: 9f5c3053-af6c-4d09-890c-0a627ce41b3c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Traffic holidays
+    config:
+      source: |-
+        WITH HolidayTraffic AS
+        (
+            SELECT
+                t.Date,
+                DAYOFWEEK(t.Date) AS DayOfWeek,
+                MONTH(t.Date) AS Mnth,
+                YEAR(t.Date) AS Yr,
+                h.Holiday,
+                t.Location,
+                t.CustType,
+                t.Customers
+
+                FROM
+                traffic_raw t
+                INNER JOIN holidays_cleaned h
+                    ON t.Date = h.Date
+        )
+        SELECT
+            hol.Date,
+            hol.Holiday,
+            hol.Location,
+            hol.CustType,
+            hol.Customers AS HolCustomers,
+            ROUND(nonhol.AvgDailyCustomers,0) AS NonholCustomers
+
+
+            FROM
+            HolidayTraffic hol
+            INNER JOIN avgtraffic_nonholiday nonhol
+                ON hol.DayOfWeek = nonhol.DayOfWeek 
+                    AND hol.Mnth = nonhol.Mnth 
+                    AND hol.Yr = nonhol.Yr 
+                    AND hol.Location = nonhol.Location 
+                    AND hol.CustType = nonhol.CustType
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: traffic_holidays
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: CustType
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: Date
+            renameTo: null
+            size: 156
+            wrapText: null
+            displayFormat: null
+          - originalName: HolCustomers
+            renameTo: null
+            size: 132
+            wrapText: null
+            displayFormat: null
+          - originalName: Holiday
+            renameTo: null
+            size: 112
+            wrapText: null
+            displayFormat: null
+          - originalName: NonholCustomers
+            renameTo: null
+            size: 157
+            wrapText: null
+            displayFormat: null
+          - originalName: Station
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: SQL
+    cellId: 9e2f44ad-297a-4382-b7bb-493ad5ace87e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Thw prelim
+    config:
+      source: |-
+        SELECT
+            th.Date,
+            th.Holiday,
+            CASE 
+                WHEN DAYOFWEEK(th.Date) = 0 THEN 'Sun'
+                WHEN DAYOFWEEK(th.Date) = 1 THEN 'Mon'
+                WHEN DAYOFWEEK(th.Date) = 2 THEN 'Tue'
+                WHEN DAYOFWEEK(th.Date) = 3 THEN 'Wed'
+                WHEN DAYOFWEEK(th.Date) = 4 THEN 'Thu'
+                WHEN DAYOFWEEK(th.Date) = 5 THEN 'Fri'
+                ELSE 'Sat'
+            END AS Weekday,
+            YEAR(th.Date) AS "Year",
+            w.temp,
+            w.precip,
+            w.precipexp,
+            th.Location,
+            th.CustType,
+            th.HolCustomers,
+            th.NonholCustomers
+
+            FROM
+            traffic_holidays th INNER JOIN weather_cleaned w
+                ON th.Date = w.datetime
+                    AND th.Location = w.location
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: THW_prelim
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: CustType
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: HolCustomers
+            renameTo: null
+            size: 132
+            wrapText: null
+            displayFormat: null
+          - originalName: Holiday
+            renameTo: null
+            size: 125
+            wrapText: null
+            displayFormat: null
+          - originalName: ILO_Date
+            renameTo: null
+            size: 156
+            wrapText: null
+            displayFormat: null
+          - originalName: NonholCustomers
+            renameTo: null
+            size: 152
+            wrapText: null
+            displayFormat: null
+          - originalName: Station
+            renameTo: null
+            size: 98
+            wrapText: null
+            displayFormat: null
+          - originalName: Target
+            renameTo: null
+            size: 88
+            wrapText: null
+            displayFormat: null
+          - originalName: Weekday
+            renameTo: null
+            size: 104
+            wrapText: null
+            displayFormat: null
+          - originalName: Year
+            renameTo: null
+            size: 79
+            wrapText: null
+            displayFormat: null
+          - originalName: precip
+            renameTo: null
+            size: 89
+            wrapText: null
+            displayFormat: null
+          - originalName: precipexp
+            renameTo: null
+            size: 108
+            wrapText: null
+            displayFormat: null
+          - originalName: temp
+            renameTo: null
+            size: 83
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: b7722371-6ab0-4058-ac97-e2229fd3a615 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        ## Additional Features
+        Several additional features were added to the data, including:
+
+        1. Days between holidays
+
+        The number of days that elapse between holidays, which is set to 18 for MLK Jr Day, due to the removal of New Years Day from the dataset, which is its preceding holiday.
+  - cellType: CODE
+    cellId: e5cf4203-d80a-4b72-ac70-a33774fa0491 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: feature 1
+    config:
+      source: |-
+        # New Feature 1: days between holidays
+
+        # Convert date
+        THW_prelim['Date'] = pd.to_datetime(THW_prelim['Date'])
+
+        # Compute a dataframe of unique date/holiday pairs and order them chronologically
+        unique_dates = THW_prelim[['Date', 'Holiday']].drop_duplicates().sort_values(by='Date')
+
+        # Compute the difference between successive holidays in days
+        unique_dates['Days_HoltoHol'] = unique_dates['Date'].diff().dt.days
+
+        # Correct for removal of New Years Day by hardcoding MLK Jr Day with 18 days
+        unique_dates.loc[unique_dates['Holiday'] == 'MLK Jr Day', 'Days_HoltoHol'] = 18
+
+        # Merge the days between holidays back to original dataframe
+        THW_prelim = THW_prelim.merge(unique_dates, on=['Date', 'Holiday'], how='left')
+  - cellType: MARKDOWN
+    cellId: 24afbea0-c53d-4e39-a1b2-bc4dbe1e33c8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        2. Days to weekend
+
+        The number of days from the holiday to the nearest weekend day.
+  - cellType: CODE
+    cellId: e208f11d-3e94-4b4b-ae00-da95c58c95e8 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: feature 2
+    config:
+      source: |-
+        # New Feature 2: days to nearest weekend
+
+        # Create a function that hardcodes values
+        def days_to_nearest_weekend(weekday):
+            days_to_weekend = {
+                'Mon': 1,
+                'Tue': 2,
+                'Wed': 3,
+                'Thu': 2,
+                'Fri': 1,
+                'Sat': 0,
+                'Sun': 0
+            }
+            return days_to_weekend[weekday]
+
+        # Apply function to dataframe
+        THW_prelim['Days_HoltoWE'] = THW_prelim['Weekday'].apply(days_to_nearest_weekend)
+  - cellType: MARKDOWN
+    cellId: ad2cb46b-8ca7-4731-a6e0-5fc6b82d73b5 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        3. Previous year traffic
+
+        The number of customers on the holiday for the previous year, for the same location and customer type.  If no data is available for the previous year, the average number of customers across years for the holiday, location and customer type is used.  This also imputes NaNs at the head of the dataset (i.e. for the first year).  
+  - cellType: CODE
+    cellId: ccfb194e-1128-4bae-b2f6-3fcc3e8aa68f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: feature 3
+    config:
+      source: |-
+        # New Feature 3: previous year traffic for same holiday, location and customer type
+
+        # Create a function that assigns last years HolCustomers values
+        def previous_year_customers(row):
+            previous_year = row['Year'] - 1
+            same_holiday_previous_year = THW_prelim[
+                (THW_prelim['Holiday'] == row['Holiday']) & 
+                (THW_prelim['Year'] == previous_year) &
+                (THW_prelim['Location'] == row['Location']) &
+                (THW_prelim['CustType'] == row['CustType'])
+            ]
+            
+            if not same_holiday_previous_year.empty:
+                return same_holiday_previous_year.iloc[0]['HolCustomers']
+            else:
+                return None
+
+        # Apply the function to dataframe
+        THW_prelim['PrevYr_Customers'] = THW_prelim.apply(previous_year_customers, axis=1)
+
+        # For holidays without a corresponding value for the previous year, impute with statistics
+        # Compute the average holiday customers across ALL years for the holiday, location and customer type
+        avg_hol_customers = (THW_prelim.groupby(["Holiday", "Location", "CustType"])["HolCustomers"].mean().reset_index())
+        avg_hol_customers.rename(columns={"HolCustomers": "AvgHolCustomers"}, inplace=True)
+
+        # Merge statistics into original dataframe
+        THW_prelim = THW_prelim.merge(avg_hol_customers, on=["Holiday", "Location", "CustType"], how="left")
+
+        # Fill the NaN
+        THW_prelim["PrevYr_Customers"].fillna(THW_prelim["AvgHolCustomers"], inplace=True)
+
+        # And drop the merged column
+        THW_prelim.drop(columns=["AvgHolCustomers"], inplace=True)
+  - cellType: MARKDOWN
+    cellId: 70d01c53-8235-47c4-90ed-a8619fd46666 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        4. Whether or not holiday traffic was lower than it's non-holiday counterpart (binary)
+
+        Finally, a binary target variable was added, indicating whether or not the holiday traffic was less than it's non-holiday average daily traffic for that day of week, month, year, location and customer type.  The final dataframe was exported to CSV for the next stage of the analysis.
+  - cellType: SQL
+    cellId: 73b41149-07e8-4b3c-805a-495e240a7c45 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: label
+    config:
+      source: |-
+        SELECT *,
+            CASE
+                WHEN HolCustomers < NonholCustomers THEN 1
+                ELSE 0
+            END AS LowerTraffic
+
+            FROM
+            THW_prelim
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: THW_final
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: CODE
+    cellId: a3e65135-7c8e-47d9-9326-a24049a1f43e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: final cleanup
+    config:
+      source: |-
+        THW_final.info()
+        THW_final["NonholCustomers"] = THW_final["NonholCustomers"].astype("int64")
+        THW_final["Days_HoltoHol"] = THW_final["Days_HoltoHol"].astype("int64")
+        THW_final["PrevYr_Customers"] = THW_final["PrevYr_Customers"].astype("int64")
+        THW_final.info()
+  - cellType: CODE
+    cellId: d81207f6-ef76-4351-90a7-0fc9d14fe974 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Export CSV
+    config:
+      source: THW_final.to_csv("THW_final.csv", index=False)
+  - cellType: MARKDOWN
+    cellId: ac9fdb3a-7037-47ca-a129-95c9279719a4 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |
+        # Final Dataframe
+
+        * Date - date of the holiday
+        * Holiday - name of the holiday
+        * Weekday - day of the week of the holiday
+        * Year - year of the holiday
+        * temp - temperature (F) of the holiday
+        * precip - precipitation (in) occurring on the holiday
+        * precipexp - whether (1) or not (0) precipitation was expected on the holiday
+        * Location - retail location (Location 1, Location 2)
+        * CustType - customer type (Self-haul, Hauler)
+        * HolCustomers - traffic (# of customers) on the holiday
+        * NonholCustomers - average traffic on a non-holiday for the same Weekday, Month, Year, Station and CustType
+        * LowerTraffic - whether (1) or not (0) holiday traffic is lower than non-holiday traffic
+        * Days_HoltoHol - the number of days from the current to the last holiday
+        * Days_HoltoWE - the number of days from the current holiday to a weekend day
+        * PrevYr_Customers - traffic on the same holiday the previous year, for the same Location and CustType 
+  - cellType: TABLE_DISPLAY
+    cellId: d2a1ad34-cbf5-4dac-8a32-7f69edec8f1c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Final Data
+    config:
+      dataFrameVariableName: THW_final
+      resultVariable: table_result
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties:
+          - originalName: CustType
+            renameTo: null
+            size: 105
+            wrapText: null
+            displayFormat: null
+          - originalName: Date
+            renameTo: null
+            size: 156
+            wrapText: null
+            displayFormat: null
+          - originalName: Days_HoltoHol
+            renameTo: null
+            size: 135
+            wrapText: null
+            displayFormat: null
+          - originalName: HolCustomers
+            renameTo: null
+            size: 132
+            wrapText: null
+            displayFormat: null
+          - originalName: Holiday
+            renameTo: null
+            size: 125
+            wrapText: null
+            displayFormat: null
+          - originalName: Location
+            renameTo: null
+            size: 101
+            wrapText: null
+            displayFormat: null
+          - originalName: NonholCustomers
+            renameTo: null
+            size: 152
+            wrapText: null
+            displayFormat: null
+          - originalName: Station
+            renameTo: null
+            size: 98
+            wrapText: null
+            displayFormat: null
+          - originalName: Weekday
+            renameTo: null
+            size: 104
+            wrapText: null
+            displayFormat: null
+          - originalName: Year
+            renameTo: null
+            size: 79
+            wrapText: null
+            displayFormat: null
+          - originalName: precip
+            renameTo: null
+            size: 89
+            wrapText: null
+            displayFormat: null
+          - originalName: precipexp
+            renameTo: null
+            size: 108
+            wrapText: null
+            displayFormat: null
+          - originalName: temp
+            renameTo: null
+            size: 83
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+appLayout:
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - LAST_RUN
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  fullWidth: false
+  tabs:
+    - name: Tab 1
+      rows:
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 45b714fb-5ddd-41d6-ae01-1f49318cb9fd
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d97d3be4-1679-4d33-aaa4-12aeaac06bfa
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: b176b847-9469-4f32-ad7c-915facccaaa4
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 43cc89a9-1d2c-4d57-a08f-fb4ab5d0e556
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 248d7c50-50bc-460f-b021-5ff471f3aee4
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: f1600558-781e-434e-9dae-63b0d4c129eb
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 81a11f6f-d70e-40a4-8b2c-476eaad28067
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: bef4d451-ea01-4418-aeff-c0df76325064
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: b65774db-1219-44ea-9ef4-8143b8f76e09
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 52dbea37-1105-416f-b03f-a1f811c8368a
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: 3abc9eab-6680-4778-b1ec-c20dc0ad5c6d
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: c5f4dcce-77d1-47da-8889-65aae5d73fd0
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: 9f5c3053-af6c-4d09-890c-0a627ce41b3c
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: b7722371-6ab0-4058-ac97-e2229fd3a615
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: e5cf4203-d80a-4b72-ac70-a33774fa0491
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 24afbea0-c53d-4e39-a1b2-bc4dbe1e33c8
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: e208f11d-3e94-4b4b-ae00-da95c58c95e8
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: ad2cb46b-8ca7-4731-a6e0-5fc6b82d73b5
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: ccfb194e-1128-4bae-b2f6-3fcc3e8aa68f
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 70d01c53-8235-47c4-90ed-a8619fd46666
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: true
+                  hideOutput: true
+                  type: CELL
+                  cellId: 73b41149-07e8-4b3c-805a-495e240a7c45
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: ac9fdb3a-7037-47ca-a129-95c9279719a4
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d2a1ad34-cbf5-4dac-8a32-7f69edec8f1c
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+sharedFilters: []

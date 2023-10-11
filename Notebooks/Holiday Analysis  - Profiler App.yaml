@@ -1,0 +1,693 @@
+schemaVersion: 3
+meta:
+  sourceVersionId: 9adf58a9-e40d-4de1-b2cf-3216e3a6def0 # DO NOT CHANGE - Hex uses this to match up project versions when reimporting the file
+  description: Oregon Company's retail locations are open to customers 363 days per year, observing only the Christmas and New Year's Day holidays.  Management seeks to find other candidate holidays for closure while minimizing impacts on customers.  This app allows managers to input information about an upcoming holiday to determine whether traffic should be lower than a similarly situated non-holiday day.
+  projectId: b3b7308c-6ef7-4470-8cc6-a238b8561864 # DO NOT CHANGE - Unique ID of the project from which this file was generated
+  title: Holiday Analysis  - Profiler App
+  timezone: null
+  appTheme: SYS_PREF
+  codeLanguage: PYTHON
+  status:
+    name: Production
+  categories:
+    - name: Public
+  castDecimalsDefault: true
+  logicQueryCacheTimeout: null
+  publishedQueryCacheTimeout: null
+projectAssets:
+  dataConnections: []
+  envVars: []
+  secrets: []
+sharedAssets:
+  secrets: []
+  vcsPackages: []
+  dataConnections: []
+  externalFileIntegrations: []
+cells:
+  - cellType: CODE
+    cellId: 31c66de7-120b-478d-996c-a557bda6225c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: install packages
+    config:
+      source: "! pip install pycaret"
+  - cellType: CODE
+    cellId: d2baefc4-c3aa-4c98-90d7-1cd3db015ca9 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        from pycaret.classification import *
+
+        # load model pkl
+        model = load_model('model_pipeline')
+  - cellType: MARKDOWN
+    cellId: d5df3229-5bce-4623-8a44-a8edf4e311ce # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Model Inputs
+
+        Start by entering your holiday of interest, and other input parameters.  The **Holiday Explorer** below will provide reference data for you to use in entering temperature, precip and others.
+  - cellType: INPUT
+    cellId: 6a8aafd9-a727-4191-89da-ceeafd53b86e # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Holiday
+    config:
+      inputType: DROPDOWN
+      name: holiday
+      outputType: STRING
+      options:
+        valueOptions:
+          - MLK Jr Day
+          - Presidents Day
+          - Memorial Day
+          - Juneteenth
+          - 4th of July
+          - Labor Day
+          - Veterans Day
+          - Thanksgiving Day
+          - Black Friday
+      defaultValue: Veterans Day
+  - cellType: INPUT
+    cellId: f3dfc689-db1a-4476-902e-b1734521d801 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Weekday
+    config:
+      inputType: DROPDOWN
+      name: weekday
+      outputType: STRING
+      options:
+        valueOptions:
+          - Mon
+          - Tue
+          - Wed
+          - Thu
+          - Fri
+      defaultValue: Mon
+  - cellType: INPUT
+    cellId: beb29758-c495-4a48-a906-e0b4f2bdf398 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Year
+    config:
+      inputType: NUMERIC_INPUT
+      name: year
+      outputType: NUMBER
+      options: null
+      defaultValue: 2023
+  - cellType: INPUT
+    cellId: 703eeb1e-530c-45c8-9097-24f7da293e7b # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Temp
+    config:
+      inputType: SLIDER
+      name: temp
+      outputType: NUMBER
+      options:
+        min: 0
+        max: 100
+        step: 1
+      defaultValue: 66
+  - cellType: INPUT
+    cellId: a525c0fe-f1de-4822-b416-531b772e4b7a # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Precip
+    config:
+      inputType: SLIDER
+      name: precip
+      outputType: NUMBER
+      options:
+        min: 0
+        max: 3
+        step: 0.01
+      defaultValue: 0
+  - cellType: INPUT
+    cellId: 16eafa76-22f9-4aa9-87ac-cef27e82e275 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Location
+    config:
+      inputType: DROPDOWN
+      name: location
+      outputType: STRING
+      options:
+        valueOptions:
+          - Any
+          - Location 1
+          - Location 2
+      defaultValue: Any
+  - cellType: INPUT
+    cellId: 5718ae9d-ccbf-45c8-bd11-102d2bffca90 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Customer type
+    config:
+      inputType: DROPDOWN
+      name: customer_type
+      outputType: STRING
+      options:
+        valueOptions:
+          - Any
+          - Type 1
+          - Type 2
+      defaultValue: Any
+  - cellType: INPUT
+    cellId: 4af4b76b-4b4d-451d-bad2-6e7febdcde65 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Days between holidays
+    config:
+      inputType: NUMERIC_INPUT
+      name: days_between_holidays
+      outputType: NUMBER
+      options: null
+      defaultValue: 62
+  - cellType: INPUT
+    cellId: da660fdf-521a-44fa-bc21-a8b16b0e8bd6 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Days from weekend day
+    config:
+      inputType: DROPDOWN
+      name: days_from_weekend_day
+      outputType: NUMBER
+      options:
+        valueOptions:
+          - 1
+          - 2
+          - 3
+      defaultValue: 1
+  - cellType: INPUT
+    cellId: 9112ef39-1c18-4051-9175-eb6e1d95925d # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Previous year customers
+    config:
+      inputType: NUMERIC_INPUT
+      name: previous_year_customers
+      outputType: NUMBER
+      options: null
+      defaultValue: 438
+  - cellType: INPUT
+    cellId: af869201-f3bb-4355-9cbd-f94d5cc472ae # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Run predictions
+    config:
+      inputType: BUTTON
+      name: run_predictions
+      outputType: BOOLEAN
+      options:
+        intent: none
+        icon: play
+        text: Predict
+      defaultValue: null
+  - cellType: MARKDOWN
+    cellId: aa569518-77cf-4124-b5dc-e1c5ac9bc1f6 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Holiday Explorer
+
+        In order to assist in entering model inputs, the following two sections provide historical statistics on the various features of the model.  These statistics relate to the chosen holiday above, which is {{holiday}}
+  - cellType: SQL
+    cellId: 5a08f8ce-86a1-489a-b9df-320bf66960bc # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Input stats1
+    config:
+      source: |-
+        WITH PerHoliday AS
+        (
+            SELECT
+                "Date",
+                "Holiday",
+                FIRST(temp) AS "temp",
+                FIRST(precip) AS "precip",
+                FIRST(Days_HoltoHol) AS "Days_HoltoHol",
+                FIRST(Days_HoltoWE) AS "Days_HoltoWE"
+
+                FROM
+                "THW_final.csv"
+
+                WHERE
+                holiday = {{holiday}}
+
+                GROUP BY
+                "date",
+                "Holiday"
+        )
+
+        SELECT
+            'Temperature' AS "Input",
+            COUNT(Holiday) AS "N",
+            AVG(temp) AS "Mean",
+            STDDEV_POP(temp) AS "Std Dev"
+        FROM PerHoliday
+
+
+        UNION SELECT
+            'Precipitation' AS "Input",
+            COUNT(Holiday) AS "N",
+            AVG(precip) AS "Mean",
+            STDDEV_POP(precip) AS "Std Dev"
+        FROM PerHoliday
+
+        UNION SELECT
+            'Days Between Holidays' AS "Input",
+            COUNT(Holiday) AS "N",
+            AVG(Days_HoltoHol) AS "Mean",
+            STDDEV_POP(Days_HoltoHol) AS "Std Dev"
+        FROM PerHoliday
+
+        UNION SELECT
+            'Days to Weekend' AS "Input",
+            COUNT(Holiday) AS "N",
+            AVG(Days_HoltoWE) AS "Mean",
+            STDDEV_POP(Days_HoltoWE) AS "Std Dev"
+        FROM PerHoliday
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: input_stats1
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: PIVOT
+    cellId: d938e614-87a7-4117-a89a-063e45eb7594 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Stats Set 1
+    config:
+      castDecimals: true
+      dataframeName: input_stats1
+      resultVariable: pivot_result_2
+      pivotConfig:
+        rows:
+          - field: Input
+            fieldType: STRING
+        values:
+          - field: N
+            fieldType: NUMBER
+            aggregation: SUM
+            nameOverride: N
+            displayFormat:
+              format: NUMBER
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 0
+              abbreviateLargeNumbers: false
+          - field: Mean
+            fieldType: NUMBER
+            aggregation: SUM
+            nameOverride: Mean
+            displayFormat:
+              format: NUMBER
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 2
+              abbreviateLargeNumbers: false
+          - field: Std Dev
+            fieldType: NUMBER
+            aggregation: SUM
+            nameOverride: Std Dev
+            displayFormat:
+              format: NUMBER
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 2
+              abbreviateLargeNumbers: false
+        columns: []
+      tableDisplayConfig:
+        pageSize: 50
+        height: null
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties: []
+        columnOrdering: []
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: SQL
+    cellId: f8e7e148-a489-4d87-8904-bcee94255da6 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Input stats2
+    config:
+      source: |-
+        SELECT
+            "Year",
+            "Location",
+            "CustType",
+            SUM(PrevYr_Customers) AS "Previous Year Traffic"
+
+            FROM "THW_final.csv"
+
+            WHERE
+            holiday = {{holiday}}
+
+            GROUP BY
+            "Year",
+            "Location",
+            "CustType"
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: input_stats2
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: PIVOT
+    cellId: 6c17bdfc-f3c1-4073-82ad-8f73e966e7ff # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Stats Set 2
+    config:
+      castDecimals: true
+      dataframeName: input_stats2
+      resultVariable: pivot_result
+      pivotConfig:
+        rows:
+          - field: Year
+            fieldType: NUMBER
+        values:
+          - field: Previous Year Traffic
+            fieldType: NUMBER
+            aggregation: SUM
+            nameOverride: Prev Yr Traffic
+            displayFormat:
+              format: NUMBER
+              currency: USD
+              columnType: NUMBER
+              numDecimalDigits: 0
+              abbreviateLargeNumbers: false
+        columns:
+          - field: Location
+            fieldType: STRING
+          - field: CustType
+            fieldType: STRING
+      tableDisplayConfig:
+        pageSize: 60
+        height: 378
+        hideIcons: false
+        hideIndex: false
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting: null
+        filters: null
+        columnProperties: []
+        columnOrdering:
+          - ASC
+          - ASC
+        pinnedColumns: null
+        hiddenColumns: null
+  - cellType: MARKDOWN
+    cellId: 35e59d0c-3d3a-4a19-a048-df1851e16c31 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      source: |-
+        # Model Output
+
+        Click the "Run" button to run the model and see whether the upcoming holiday will have relatively lower or higher traffic.  Confidence is expressed as a percentage from .5 (a coin flip) to 1.  This does not relate to how MUCH lower or higher traffic will be, only the confidence level that it WILL be higher or lower.
+  - cellType: CODE
+    cellId: 68418e04-161d-404b-9685-e565a4edacde # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: gather inputs into dataframe
+    config:
+      source: |-
+        import pandas as pd
+
+        # Gather user input data
+        inputs = pd.DataFrame(
+            {
+                "Holiday": [holiday],
+                "Weekday": [weekday],
+                "Year": [year],
+                "temp": [temp],
+                "precip": [precip],
+                # Auto-define precipexp based on precip input
+                "precipexp": [1 if precip >= 0.05 else 0],
+                "Location": [location],
+                "CustType": [customer_type],
+                "Days_HoltoHol": [days_between_holidays],
+                "Days_HoltoWE": [days_from_weekend_day],
+                "PrevYr_Customers": [previous_year_customers],
+            }
+        )
+  - cellType: CODE
+    cellId: 78d1749b-d64a-463f-94ba-06843127571f # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: predictions
+    config:
+      source: |-
+        if run_predictions:
+            predictions = predict_model(model, data=inputs)
+        else:
+            display('Click run button')
+  - cellType: SQL
+    cellId: cc84a7ac-afd3-47b6-9e81-5e46f45c381c # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: Pred transformed
+    config:
+      source: |-
+        SELECT
+            CASE 
+                WHEN "prediction_label" = 1 THEN 'Lower traffic'
+                ELSE 'Higher traffic'
+            END AS "Prediction",
+            "prediction_score" AS "Confidence"
+
+            FROM predictions
+      dataFrameCell: true
+      dataConnectionId: null
+      resultVariableName: pred_transformed
+      useRichDisplay: false
+      sqlCellOutputType: PANDAS
+      useQueryMode: false
+      castDecimals: true
+      useNativeDates: true
+      outputFilteredResult: true
+      allowDuplicateColumns: false
+      tableDisplayConfig: null
+  - cellType: TABLE_DISPLAY
+    cellId: 73b00275-34cb-4d1c-8a40-9348397de188 # DO NOT CHANGE - Hex uses this to match up cells when reimporting the file, and detect any changes to existing cells
+    cellLabel: null
+    config:
+      dataFrameVariableName: pred_transformed
+      resultVariable: table_result
+      tableDisplayConfig:
+        pageSize: 50
+        height: 100
+        hideIcons: true
+        hideIndex: true
+        defaultSortColumn: null
+        defaultSortIndexColumn: null
+        defaultSortDirection: ASC
+        conditionalFormatting:
+          rulesets:
+            - type: RULES
+              rules:
+                - style: GREEN
+                  expression:
+                    op: EQ
+                    arg: Lower traffic
+                - style: RED
+                  expression:
+                    op: EQ
+                    arg: Higher traffic
+              columns:
+                type: EXCLUDE
+                excludedColumns: []
+        filters: null
+        columnProperties:
+          - originalName: Confidence
+            renameTo: null
+            size: 116
+            wrapText: null
+            displayFormat: null
+          - originalName: Prediction
+            renameTo: null
+            size: 110
+            wrapText: null
+            displayFormat: null
+        columnOrdering: null
+        pinnedColumns: null
+        hiddenColumns: null
+appLayout:
+  visibleMetadataFields:
+    - NAME
+    - DESCRIPTION
+    - AUTHOR
+    - LAST_EDITED
+    - LAST_RUN
+    - CATEGORIES
+    - STATUS
+    - TABLE_OF_CONTENTS
+  fullWidth: false
+  tabs:
+    - name: Tab 1
+      rows:
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d5df3229-5bce-4623-8a44-a8edf4e311ce
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 6a8aafd9-a727-4191-89da-ceeafd53b86e
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 16eafa76-22f9-4aa9-87ac-cef27e82e275
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: f3dfc689-db1a-4476-902e-b1734521d801
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 5718ae9d-ccbf-45c8-bd11-102d2bffca90
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: beb29758-c495-4a48-a906-e0b4f2bdf398
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 4af4b76b-4b4d-451d-bad2-6e7febdcde65
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 703eeb1e-530c-45c8-9097-24f7da293e7b
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: da660fdf-521a-44fa-bc21-a8b16b0e8bd6
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: a525c0fe-f1de-4822-b416-531b772e4b7a
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 9112ef39-1c18-4051-9175-eb6e1d95925d
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: aa569518-77cf-4124-b5dc-e1c5ac9bc1f6
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: d938e614-87a7-4117-a89a-063e45eb7594
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 6c17bdfc-f3c1-4073-82ad-8f73e966e7ff
+                  sharedFilterId: null
+                  height: null
+                  showLabel: false
+        - columns:
+            - start: 0
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 35e59d0c-3d3a-4a19-a048-df1851e16c31
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+        - columns:
+            - start: 0
+              end: 60
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: af869201-f3bb-4355-9cbd-f94d5cc472ae
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+            - start: 60
+              end: 120
+              elements:
+                - showSource: false
+                  hideOutput: false
+                  type: CELL
+                  cellId: 73b00275-34cb-4d1c-8a40-9348397de188
+                  sharedFilterId: null
+                  height: null
+                  showLabel: true
+sharedFilters: []
