@@ -1,5 +1,5 @@
 # Classifying Low Customer-traffic Holidays to Assist in Business Closure Decisions
-![image]()
+![image](https://github.com/joelmsherman/Classifying-Holiday-Customer-Traffic/blob/master/Images/christopher-burns-Kj2SaNHG-hg-unsplash.jpg)
 
 ## Background
 Oregon Company (OC) owns and operates two major retail locations in the Portland metro area.  Those locations are open to customers 363 days per year, observing only the Christmas and New Year's Day holidays.  This level of operation is difficult in the current labor market, and OC management seeks to find other candidate holidays for closure in order to reduce operating costs while minimizing impacts on customers.
